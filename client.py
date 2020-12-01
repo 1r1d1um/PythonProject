@@ -3,6 +3,7 @@ from tkinter import *
 import helpers
 from tkinter.font import Font
 import random
+from datetime import datetime
 
 
 def main():
@@ -34,10 +35,12 @@ def main():
 
     root.mainloop()
 
+
 def send_message(event, message_box, message_frame):
-    msg = message_box.get("1.0",'end-1c')
+    msg = message_box.get("1.0", 'end-1c')
     sender = "haberkornsam"
-    data = {"message": msg, "sender": sender}
+    time = datetime.now().strftime("%m/%d/%y %I:%M %p")
+    data = {"message": msg, "sender": sender, "time": time}
     message_frame.add_sent_message(data)
     message_box.delete("1.0", 'end')
 
@@ -46,72 +49,93 @@ class MessageFrame(Frame):
     def __init__(self, parent, width, height):
         Frame.__init__(self, parent)
         self.width = width
+        # Create canvas for everything to go on
         self.canvas = Canvas(self, borderwidth=0, background="#141414", width=width - 15, height=height,
                              highlightthickness=0)
+
+        # place a frame and scrollbar
         self.frame = Frame(self.canvas, background="#141414", bd=0)
         self.vsb = Scrollbar(self, orient="vertical", command=self.canvas.yview, bg='#141414')
+        # attach scrollbar to canvas
         self.canvas.configure(yscrollcommand=self.vsb.set)
 
+        # put everything in the window
         self.vsb.pack(side="right", fill="y")
         self.canvas.pack(side="left", fill="both", expand=True)
-        self.canvas.create_window(0,0, window=self.frame, anchor="nw",
+        self.canvas.create_window(0, 0, window=self.frame, anchor="nw",
                                   tags="self.frame")
 
+        # This variable controls whether the canvas scrolls to most recent msg
         self.move_scrollbar = False
 
+        # bind configuration changes
         self.frame.bind("<Configure>", self.onFrameConfigure)
 
+        # populate sample data. Uncomment for testing
         self.populate(width, height)
 
     def add_received_message(self, data):
         self.move_scrollbar = True
         padding_height = 30
         row_height = 15
-        height = padding_height+row_height+((len(data.get("message")) // 92)*row_height)
+        # height has a minimum threshold of 45px then add additional 15px per line
+        height = padding_height + row_height + ((len(data.get("message")) // 92) * row_height)
 
-        can = Canvas(self.frame, width=self.width - 30, height=height, borderwidth=0, bd=0, bg="#141414", highlightthickness=0)
-        helpers.round_rectangle(can, 0, 0, self.width-180, height, fill=f"#444444")
+        # Create canvas to place individual message on
+        can = Canvas(self.frame, width=self.width - 30, height=height, borderwidth=0,
+                     bd=0, bg="#141414", highlightthickness=0)
+
+        # create rounded rectangle background for aesthetics
+        helpers.round_rectangle(can, 0, 0, self.width - 180, height, fill="#444444")
+
+        # username and timestamp
+        l = Label(can, text=f"{data.get('sender'.strip())}  " + u"\u2022" + f"  {data.get('time').strip()}",
+                  bg='#444444',
+                  font=Font(family="Calibri", size=9))
+        l.place(x=50, y=3, anchor='nw')
 
         # label with message
         l = Label(can, text=data.get("message").strip(), width=80, anchor='w',
-                  bg = f"#444444", justify = 'left', wraplength=self.width-240)
+                  bg=f"#444444", justify='left', wraplength=self.width - 240)
         l.place(x=50, y=15, anchor='nw')
 
         # profile pic area
         pic = can.create_oval(40, 10, 10, 40, fill='#ff00f0')
         can.create_text(25, 25, text=data.get("sender")[0].upper())
 
-
         can.grid(row=self.frame.grid_size()[1], column=0, pady=4)
 
 
     def add_sent_message(self, data):
-        self.move_scrollbar=True
-        c = hex(random.randint(0,255))
+        self.move_scrollbar = True
+        c = hex(random.randint(0, 255))
         c = c[2:] if len(c[2:]) == 2 else '0' + c[2:]
 
         padding_height = 30
         row_height = 15
 
-        height = padding_height+row_height+((len(data.get("message")) // 92)*row_height)
+        height = padding_height + row_height + ((len(data.get("message")) // 92) * row_height)
 
         # wrapper canvas and colored blob
-        can = Canvas(self.frame, width=self.width - 30, height=height, borderwidth=0, bd=0, bg="#141414", highlightthickness=0)
-        helpers.round_rectangle(can, 150, 0, self.width-30, height, fill=f"#444444")
+        can = Canvas(self.frame, width=self.width - 30, height=height, borderwidth=0, bd=0,
+                     bg="#141414", highlightthickness=0)
+        helpers.round_rectangle(can, 150, 0, self.width - 30, height, fill=f"#444444")
+
+        # username and timestamp
+        l = Label(can, text=f"You  " + u"\u2022" + f"  {data.get('time').strip()}", bg='#444444',
+                  font=Font(family="Calibri", size=9))
+        l.place(x=self.width - 80, y=3, anchor='ne')
 
         # label with message
         l = Label(can, text=data.get("message").strip(), width=80, anchor='e',
-                  bg = f"#444444", justify = 'left', wraplength=self.width-240)
+                  bg=f"#444444", justify='left', wraplength=self.width - 240)
         l.place(x=self.width - 80, y=15, anchor='ne')
 
         # profile pic area
         pic = can.create_oval(self.width - 70, 10, self.width - 40, 40, fill='#ff00f0')
-        can.create_text(self.width-55, 25, text=data.get("sender")[0].upper())
-
+        can.create_text(self.width - 55, 25, text=data.get("sender")[0].upper())
 
         can.grid(row=self.frame.grid_size()[1], column=0, pady=4)
-
-
 
 
 
@@ -119,13 +143,15 @@ class MessageFrame(Frame):
     def populate(self, width, height):
         '''Put in some fake data'''
         for row in range(100):
-            data = {"message": f"This is the {row} row of the messages", "sender": "Haberkorn"}
+            data = {"message": f"This is the {row} row of the messages", "sender": "Haberkorn",
+                    "time": "01/12/2020 03:36 PM"}
             if row % 3 == 0:
                 self.add_sent_message(data)
             else:
                 self.add_received_message(data)
 
-        data = {"message": f"This is the last row of the messages {'ahhh '*120}", "sender": "SHaberkorn"}
+        data = {"message": f"This is the last row of the messages {'ahhh ' * 120}", "sender": "SHaberkorn",
+                "time": "01/12/2020 03:36 PM"}
         self.add_received_message(data)
 
 
@@ -135,9 +161,6 @@ class MessageFrame(Frame):
         if self.move_scrollbar:
             self.canvas.yview_moveto(1.0)
             self.move_scrollbar = False
-
-
-
 
 
 
