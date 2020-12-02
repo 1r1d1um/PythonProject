@@ -6,9 +6,23 @@ import random
 from datetime import datetime
 import re
 import json
+import easygui
+import _thread
 
 def main():
     ui_setup()
+
+def receive_messages(message_box, username):
+    TCP_IP, TCP_PORT = "localhost", 5005
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.connect((TCP_IP, TCP_PORT))
+    while True:
+        data = s.recv(1024).decode('utf8')
+        if data is not None and data != "Connected to chatroom":
+            print(data)
+            data = json.loads(data)
+            if data.get("sender") != username.get():
+                message_box.add_received_message(data)
 
 def ui_setup():
     root = Tk()
@@ -24,7 +38,7 @@ def ui_setup():
     helpers.round_rectangle(entry_canvas, 0, 0, 820, 40, fill='#444444')
 
     # text entry
-    text = Text(entry_canvas, width=87, height=2, bg='#444444',
+    text = Text(entry_canvas, width=85, height=2, bg='#444444',
                 highlightthickness=0, font=Font(family="Calibri", size=15), selectbackground='#666666')
     text.place(x=10, y=20, anchor='w')
 
@@ -38,10 +52,14 @@ def ui_setup():
     entry_canvas.create_oval(830, 0, 870, 40, fill='#338edb', tags='send')
     entry_canvas.create_bitmap(852, 20, bitmap="@send_icon.xbm", tags='send')
 
+    # attach button
+    entry_canvas.create_bitmap(800, 20, bitmap="@attach_icon.xbm", tags='attach')
+
     messages = MessageFrame(canvas, 880, 430)
     messages.place(x=10, y=10, anchor='nw')
 
     entry_canvas.tag_bind('send', '<Button-1>', lambda e: send_message(e, text, messages, username, color))
+    entry_canvas.tag_bind('attach', '<Button-1>', attach_file)
 
     menu = Menu(root)
     settings_menu = Menu(menu, tearoff=0)
@@ -49,7 +67,14 @@ def ui_setup():
     menu.add_cascade(label="Settings", menu=settings_menu)
     root.config(menu=menu)
 
+    _thread.start_new_thread(receive_messages, (messages, username))
+
     root.mainloop()
+
+def attach_file(event):
+    path = easygui.fileopenbox()
+    # TODO: Connect Gabriel's Code Here
+
 
 def edit_profile(username_var, color_var):
     window = Tk()
@@ -58,7 +83,6 @@ def edit_profile(username_var, color_var):
     window.config(bg="#141414")
 
     Label(window, text="Username", bg='#141414', fg='#ffffff').place(x=100, y=10, anchor='n')
-    print(username_var)
     entry = Text(window, width=10, height=1, font=Font(family="Calibri", size=15))
     entry.place(x=100, y=40, anchor='n')
     entry.insert("end-1c",username_var.get())
@@ -73,7 +97,6 @@ def edit_profile(username_var, color_var):
     save.bind("<Button-1>", lambda e: save_profile(username_var, color_var, entry, color_entry, window))
 
 def save_profile(username_var, color_var, user_entry, color_entry, window):
-    print("Saving...")
     color = color_entry.get("1.0", "end-1c")
     if color[0] != '#':
         color.insert(0, '#')
@@ -93,7 +116,6 @@ def send_message(event, message_box, message_frame, sender, color):
     message_box.delete("1.0", 'end')
     TCP_IP = 'localhost'
     TCP_PORT = 5005
-    print(json.dumps(data))
     MESSAGE = bytes(json.dumps(data), encoding='utf8')
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((TCP_IP, TCP_PORT))
