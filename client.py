@@ -5,9 +5,12 @@ from tkinter.font import Font
 import random
 from datetime import datetime
 import re
-
+import json
 
 def main():
+    ui_setup()
+
+def ui_setup():
     root = Tk()
     root.title("CS-3080 Final Project")
     root.geometry('900x500')
@@ -88,7 +91,15 @@ def send_message(event, message_box, message_frame, sender, color):
     data = {"message": msg, "sender": sender.get(), "time": time, "color": color.get()}
     message_frame.add_sent_message(data)
     message_box.delete("1.0", 'end')
-
+    TCP_IP = 'localhost'
+    TCP_PORT = 5005
+    print(json.dumps(data))
+    MESSAGE = bytes(json.dumps(data), encoding='utf8')
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.connect((TCP_IP, TCP_PORT))
+    s.send(MESSAGE)
+    resp = s.recv(1024)
+    s.close()
 
 class MessageFrame(Frame):
     def __init__(self, parent, width, height):
