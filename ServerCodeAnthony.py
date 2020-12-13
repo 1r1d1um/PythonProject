@@ -2,6 +2,7 @@
 import socket
 import _thread
 import json
+import os
 
 # checks through the list of connected users and sends the data to each of them (excluding the user who originally sent the data for retransmission)
 def sendAllMessage(data, clientVal):
@@ -23,11 +24,24 @@ def client_thread(clientThread, addressOfUser):
     clientThread.send(bytes(connectionString, encoding='utf8'))
 
     while True:
-        data = clientThread.recv(1024)      # receives data from client
-        if data:                            # checks if data has been received and stops when no more is coming in
-            print(data)                     # prints the data out on the server in the json/dictionary format. This can be modified later for better server logging
-            sendAllMessage(data, client)    # sends messages to all connected users (except original sender)
-            # client.send(data) <-- used to test if original user can also recieve messages
+        dataPackage = clientThread.recv(1024)           # receives data from client
+        if dataPackage:                                 # checks if data has been received and stops when no more is coming in
+            dataCheck = dataPackage.decode('utf-8')
+
+            if dataCheck['Operation'] == '1':
+                print(dataCheck["time"] + " - " + dataCheck["sender"] + ": " + dataCheck["message"])  # prints the data out on the server in the json/dictionary format. This can be modified later for better server logging
+                sendAllMessage(dataPackage, client)            # sends messages to all connected users (except original sender)
+            elif dataCheck['Operation'] == '2':
+                # RECEIVE FILE HERE
+            elif dataCheck['Operation'] == '3':
+                # SEND FILE HERE
+            elif dataCheck['Operation'] == '4':
+                serverFiles = os.listdir()
+                serverFiles = str(serverFiles)
+                clientThread.send(bytes(serverFiles, encoding='utf8'))
+            else:
+                print("ERROR, NO OPERATION SEEN. CLIENT ERROR DETECTED.")
+
         else:
             removeConnection(clientThread)  # if no data arrives from the connected user, the user is disconnected from the server
 
@@ -46,3 +60,4 @@ while True:
     client, address = server.accept()                           # accepts new incoming connection
     connectedUsers.append(client)                               # appends the ip address/identifier of the incoming client
     _thread.start_new_thread(client_thread, (client, address))  # starts a new thread for the new user
+
