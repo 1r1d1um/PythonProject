@@ -6,6 +6,7 @@ Python Final Project: File transfer client
 
 import socket
 import os
+import json
 
 SEPARATOR = "<SEPARATOR>"
 # for sending 4096 bytes each iteration
@@ -28,12 +29,13 @@ s.connect((host, port))
 print("Connection established")
 
 
-def send_file(fname, fsize):
+def send_file(fname, data):
     # opens file for reading binary
     f = open(filename, "rb")
 
     # sends the file name and file size
-    s.send(f"{filename}{SEPARATOR}{filesize}".encode())
+    # This is the header
+    s.send(bytes(json.dumps(data), encoding='utf-8'))
 
     # reads file until end of the file
     byte_read = True

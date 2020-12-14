@@ -7,6 +7,7 @@ import re
 import json
 import easygui
 import _thread
+import client_filetransfer_Gabriel_Yeager
 
 def main():
     ip = input("Input IP Address of Server: ")  # default 192.168.1.129 unless it changed
@@ -17,7 +18,7 @@ def receive_messages(message_box, username, ip, port):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((ip, port))
     while True:
-        data = s.recv(1024).decode('utf8')
+        data = s.recv(1024).decode('utf-8')
         if data is not None and data != "Connected to chatroom":
             print(data)
             data = json.loads(data)
@@ -59,7 +60,7 @@ def ui_setup(ip, port):
     messages.place(x=10, y=10, anchor='nw')
 
     entry_canvas.tag_bind('send', '<Button-1>', lambda e: send_message(e, text, messages, username, color, ip, port))
-    entry_canvas.tag_bind('attach', '<Button-1>', attach_file)
+    entry_canvas.tag_bind('attach', '<Button-1>', lambda e: attach_file(e, text, messages, username, color, ip, port))
 
     menu = Menu(root)
     settings_menu = Menu(menu, tearoff=0)
@@ -71,10 +72,20 @@ def ui_setup(ip, port):
 
     root.mainloop()
 
-def attach_file(event):
+def attach_file(event, message_box, message_frame, sender, color, ip, port):
     path = easygui.fileopenbox()
-    # TODO: Connect Gabriel's Code Here
+    send_file(event, message_box, message_frame, sender, color, ip, port, path)
 
+def send_file(event, message_box, message_frame, sender, color, ip, port, path):
+    msg = message_box.get("1.0", 'end-1c')
+    time = datetime.now().strftime("%m/%d/%y %I:%M %p")
+
+    #home/documents/myfile.txt
+    data = {"file_name": path, "sender": sender.get(), "time": time, "color": color.get(), "Operation": "2"}
+    client_filetransfer_Gabriel_Yeager.send_file(path, data)
+
+    #message_frame.add_sent_message(data)
+    #message_box.delete("1.0", 'end')
 
 def edit_profile(username_var, color_var):
     window = Tk()
@@ -168,6 +179,7 @@ class MessageFrame(Frame):
         user = Label(can, text=f"{data.get('sender'.strip())}  " + u"\u2022" + f"  {data.get('time').strip()}",
                      bg='#444444', font=Font(family="Calibri", size=9))
         user.place(x=50, y=3, anchor='nw')
+
 
         # label with message
         msg_label = Label(can, text=data.get("message").strip(), width=80, anchor='w',
