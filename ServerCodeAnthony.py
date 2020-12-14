@@ -39,7 +39,7 @@ def client_thread(clientThread, addressOfUser):
                     #from server_filetransfer_GabrielYeager.py
 
                     # opens file for writing binary
-                    f = open(dataCheck["file_name"], "wb+")
+                    sendAllMessage(dataPackage, client)
 
                     # writes to new file until end of sent file
                     byte_read = True
@@ -48,8 +48,9 @@ def client_thread(clientThread, addressOfUser):
                         if not bytes_read:
                             # file transmission is done
                             break
+                        f = open(dataCheck["file_name"], "ab+")
                         f.write(bytes_read)
-                    sendAllMessage(dataPackage, client)
+                        f.close()
 
 
                 elif dataCheck['Operation'] == '3':
