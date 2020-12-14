@@ -62,7 +62,7 @@ def client_thread(clientThread, addressOfUser):
                         if not bytes_read:
                             # file transmitting is done
                             break
-                        clientThread.send(bytes_read)
+                        clientThread.sendall(bytes_read)
                     # SEND FILE HERE
                 #elif dataCheck['Operation'] == '4':
                 #    serverFiles = os.listdir()
