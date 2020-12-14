@@ -1,6 +1,5 @@
 import socket
 from tkinter import *
-import helpers
 from tkinter.font import Font
 import random
 from datetime import datetime
@@ -10,12 +9,13 @@ import easygui
 import _thread
 
 def main():
-    ui_setup()
+    ip = input("Input IP Address of Server: ")  # default 192.168.1.129 unless it changed
+    port = int(input("Input Port for Server: "))  # default 5005 and should remain constant
+    ui_setup(ip, port)
 
-def receive_messages(message_box, username):
-    TCP_IP, TCP_PORT = "localhost", 5005
+def receive_messages(message_box, username, ip, port):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((TCP_IP, TCP_PORT))
+    s.connect((ip, port))
     while True:
         data = s.recv(1024).decode('utf8')
         if data is not None and data != "Connected to chatroom":
@@ -24,7 +24,7 @@ def receive_messages(message_box, username):
             if data.get("sender") != username.get():
                 message_box.add_received_message(data)
 
-def ui_setup():
+def ui_setup(ip, port):
     root = Tk()
     root.title("CS-3080 Final Project")
     root.geometry('900x500')
@@ -35,7 +35,7 @@ def ui_setup():
     # container for message entry
     entry_canvas = Canvas(canvas, width=880, height=40, bg='#141414', highlightthickness=0)
     entry_canvas.place(x=450, y=490, anchor='s')
-    helpers.round_rectangle(entry_canvas, 0, 0, 820, 40, fill='#444444')
+    round_rectangle(entry_canvas, 0, 0, 820, 40, fill='#444444')
 
     # text entry
     text = Text(entry_canvas, width=85, height=2, bg='#444444',
@@ -58,7 +58,7 @@ def ui_setup():
     messages = MessageFrame(canvas, 880, 430)
     messages.place(x=10, y=10, anchor='nw')
 
-    entry_canvas.tag_bind('send', '<Button-1>', lambda e: send_message(e, text, messages, username, color))
+    entry_canvas.tag_bind('send', '<Button-1>', lambda e: send_message(e, text, messages, username, color, ip, port))
     entry_canvas.tag_bind('attach', '<Button-1>', attach_file)
 
     menu = Menu(root)
@@ -67,7 +67,7 @@ def ui_setup():
     menu.add_cascade(label="Settings", menu=settings_menu)
     root.config(menu=menu)
 
-    _thread.start_new_thread(receive_messages, (messages, username))
+    _thread.start_new_thread(receive_messages, (messages, username, ip, port))
 
     root.mainloop()
 
@@ -108,17 +108,15 @@ def save_profile(username_var, color_var, user_entry, color_entry, window):
         Label(window, text="Color must match '#xxxxxx'", fg='#ff0000',
               bg="#141414", font=Font(family="calibri", size=15)).place(x=100, y=135, anchor='n')
 
-def send_message(event, message_box, message_frame, sender, color):
+def send_message(event, message_box, message_frame, sender, color, ip, port):
     msg = message_box.get("1.0", 'end-1c')
     time = datetime.now().strftime("%m/%d/%y %I:%M %p")
-    data = {"message": msg, "sender": sender.get(), "time": time, "color": color.get()}
+    data = {"message": msg, "sender": sender.get(), "time": time, "color": color.get(), "Operation": "1"}
     message_frame.add_sent_message(data)
     message_box.delete("1.0", 'end')
-    TCP_IP = 'localhost'
-    TCP_PORT = 5005
     MESSAGE = bytes(json.dumps(data), encoding='utf8')
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((TCP_IP, TCP_PORT))
+    s.connect((ip, port))
     s.send(MESSAGE)
     resp = s.recv(1024)
     s.close()
@@ -150,7 +148,7 @@ class MessageFrame(Frame):
         self.frame.bind("<Configure>", self.on_frame_configure)
 
         # populate sample data. Uncomment for testing
-        self.populate(width, height)
+        # self.populate(width, height)
 
     def add_received_message(self, data):
         self.move_scrollbar = True
@@ -164,7 +162,7 @@ class MessageFrame(Frame):
                      bd=0, bg="#141414", highlightthickness=0)
 
         # create rounded rectangle background for aesthetics
-        helpers.round_rectangle(can, 0, 0, self.width - 180, height, fill="#444444")
+        round_rectangle(can, 0, 0, self.width - 180, height, fill="#444444")
 
         # username and timestamp
         user = Label(can, text=f"{data.get('sender'.strip())}  " + u"\u2022" + f"  {data.get('time').strip()}",
@@ -196,7 +194,7 @@ class MessageFrame(Frame):
         # wrapper canvas and colored blob
         can = Canvas(self.frame, width=self.width - 30, height=height, borderwidth=0, bd=0,
                      bg="#141414", highlightthickness=0)
-        helpers.round_rectangle(can, 150, 0, self.width - 30, height, fill=f"#444444")
+        round_rectangle(can, 150, 0, self.width - 30, height, fill=f"#444444")
 
         # username and timestamp
         user = Label(can, text=f"You  " + u"\u2022" + f"  {data.get('time').strip()}", bg='#444444',
@@ -235,6 +233,31 @@ class MessageFrame(Frame):
             self.canvas.yview_moveto(1.0)
             self.move_scrollbar = False
 
+
+def round_rectangle(master, x1, y1, x2, y2, radius=25, **kwargs):
+
+    points = [x1+radius, y1,
+              x1+radius, y1,
+              x2-radius, y1,
+              x2-radius, y1,
+              x2, y1,
+              x2, y1+radius,
+              x2, y1+radius,
+              x2, y2-radius,
+              x2, y2-radius,
+              x2, y2,
+              x2-radius, y2,
+              x2-radius, y2,
+              x1+radius, y2,
+              x1+radius, y2,
+              x1, y2,
+              x1, y2-radius,
+              x1, y2-radius,
+              x1, y1+radius,
+              x1, y1+radius,
+              x1, y1]
+
+    return master.create_polygon(points, **kwargs, smooth=True)
 
 if __name__ == '__main__':
     main()
