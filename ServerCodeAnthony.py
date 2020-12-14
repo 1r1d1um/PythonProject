@@ -22,7 +22,7 @@ def removeConnection(clientRemove):
 # threading allows multiple users to connect to server *THIS WILL BE MODIFIED LATER*
 def client_thread(clientThread, addressOfUser):
     connectionString = "Connected to chatroom"
-    clientThread.send(bytes(connectionString, encoding='utf8'))
+    clientThread.send(bytes(connectionString, encoding='utf-8'))
 
     while True:
         try:
@@ -33,9 +33,36 @@ def client_thread(clientThread, addressOfUser):
                 if dataCheck['Operation'] == '1':
                     print(dataCheck["time"] + " - " + dataCheck["sender"] + ": " + dataCheck["message"])  # prints the data out on the server in the json/dictionary format. This can be modified later for better server logging
                     sendAllMessage(dataPackage, client)            # sends messages to all connected users (except original sender)
+
+
                 elif dataCheck['Operation'] == '2':
-                    # RECEIVE FILE HERE
+                    #from server_filetransfer_GabrielYeager.py
+
+                    # opens file for writing binary
+                    f = open(dataCheck["file_name"], "wb+")
+
+                    # writes to new file until end of sent file
+                    byte_read = True
+                    while byte_read:
+                        bytes_read = clientThread.recv(4096)
+                        if not bytes_read:
+                            # file transmission is done
+                            break
+                        f.write(bytes_read)
+                    sendAllMessage(dataPackage, client)
+
+
                 elif dataCheck['Operation'] == '3':
+                    # taken from client_filetransfer_Gabriel_Yeager.py
+                    f = open(dataCheck['file_name'], "rb")
+                    # reads file until end of the file
+                    byte_read = True
+                    while byte_read:
+                        bytes_read = f.read(4096)
+                        if not bytes_read:
+                            # file transmitting is done
+                            break
+                        clientThread.send(bytes_read)
                     # SEND FILE HERE
                 #elif dataCheck['Operation'] == '4':
                 #    serverFiles = os.listdir()
