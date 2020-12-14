@@ -7,6 +7,7 @@ import re
 import json
 import easygui
 import _thread
+import os
 
 
 # import client_filetransfer_Gabriel_Yeager

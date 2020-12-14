@@ -12,15 +12,17 @@ import os
 # import client_filetransfer_Gabriel_Yeager
 
 def main():
+    # setup with global IP and Port
     global IP, PORT
-    ip = "76.120.32.88" or input("Input IP Address of Server: ")  # default 192.168.1.129 unless it changed
-    port = 5005 or int(input("Input Port for Server: "))  # default 5005 and should remain constant
+    ip = input("Input IP Address of Server: ")  # default 192.168.1.129 unless it changed
+    port = int(input("Input Port for Server: "))  # default 5005 and should remain constant
     IP = ip
     PORT = port
     ui_setup(ip, port)
 
 
 def receive_messages(message_box, username, ip, port):
+    # thread to receive messages. Taken from Anthony server tests
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((ip, port))
     while True:
@@ -36,6 +38,7 @@ def receive_messages(message_box, username, ip, port):
 
 
 def ui_setup(ip, port):
+    # handles set up User Interface
     root = Tk()
     root.title("CS-3080 Final Project")
     root.geometry('900x500')
@@ -84,43 +87,29 @@ def ui_setup(ip, port):
 
 
 def attach_file(event, message_box, message_frame, sender, color, ip, port):
-    path = easygui.fileopenbox()
+    # open a filebox to select file. Bug with easygui...  no way to make filetypes everything
+    path = easygui.fileopenbox(filetypes=["*.txt", "*.png", "*.jpg", "*.jpeg", "*.pdf",
+                                          "*.mp4", "*.mp3", "*.docx", "*.py", "*.md", "*.xml", "*.xbm", "*.bmp"])
     send_file(event, message_box, message_frame, sender, color, ip, port, path)
 
 
 def send_file(event, message_box, message_frame, sender, color, ip, port, path):
-
-
+    # send a file. Made by Gabriel
     msg = message_box.get("1.0", 'end-1c')
     time = datetime.now().strftime("%m/%d/%y %I:%M %p")
 
-    # home/documents/myfile.txt
-    data = {"file_name": path, "sender": sender.get(), "time": time, "color": color.get(), "Operation": "2"}
-    # client_filetransfer_Gabriel_Yeager.send_file(path, data)
+    file_name = os.path.basename(path)
+
+    # header
+    data = {"file_name": file_name, "sender": sender.get(), "time": time, "color": color.get(), "Operation": "2"}
     message_frame.add_sent_file(data)
 
 
     host = ip
-    # the port
-    # port = port
-    # the name of file to be sent
-    filename = os.path.basename(path)
-    # gets the file size
-    filesize = os.path.getsize(filename)
-
     # creates the client socket
     s = socket.socket()
 
     s.connect((host, port))
-
-    msg = message_box.get("1.0", 'end-1c')
-    time = datetime.now().strftime("%m/%d/%y %I:%M %p")
-
-    # home/documents/myfile.txt
-    data = {"file_name": path, "sender": sender.get(), "time": time, "color": color.get(), "Operation": "2"}
-
-    # message_frame.add_sent_message(data)
-    # message_box.delete("1.0", 'end')
 
     f = open(path, "rb")
 
@@ -136,18 +125,22 @@ def send_file(event, message_box, message_frame, sender, color, ip, port, path):
             break
         s.sendall(bytes_read)
 
+    s.close()
+
 
 def edit_profile(username_var, color_var):
+    # secondary window to edit user profile
     window = Tk()
     window.geometry("200x200")
     window.title("Edit Profile")
     window.config(bg="#141414")
 
+    # username label
     Label(window, text="Username", bg='#141414', fg='#ffffff').place(x=100, y=10, anchor='n')
     entry = Text(window, width=10, height=1, font=Font(family="Calibri", size=15))
     entry.place(x=100, y=40, anchor='n')
     entry.insert("end-1c", username_var.get())
-
+    # color label
     Label(window, text="Profile Hex Color", bg='#141414', fg='#ffffff').place(x=100, y=80, anchor='n')
     color_entry = Text(window, width=10, height=1, font=Font(family="calibri", size=15))
     color_entry.place(x=100, y=110, anchor='n')
@@ -160,6 +153,7 @@ def edit_profile(username_var, color_var):
 
 def save_profile(username_var, color_var, user_entry, color_entry, window):
     color = color_entry.get("1.0", "end-1c")
+    # check if color is valid
     if color[0] != '#':
         color.insert(0, '#')
     if re.fullmatch(r'#[0-9a-fA-F]{6}', color):
@@ -172,6 +166,7 @@ def save_profile(username_var, color_var, user_entry, color_entry, window):
 
 
 def send_message(event, message_box, message_frame, sender, color, ip, port):
+    # send message to server with a header
     msg = message_box.get("1.0", 'end-1c')
     time = datetime.now().strftime("%m/%d/%y %I:%M %p")
     data = {"message": msg, "sender": sender.get(), "time": time, "color": color.get(), "Operation": "1"}
@@ -181,21 +176,17 @@ def send_message(event, message_box, message_frame, sender, color, ip, port):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((ip, port))
     s.send(MESSAGE)
-    resp = s.recv(1024)
     s.close()
 
 
 def receive_file(file_name, ip, port):
+    # request file for download
     data = {"file_name": file_name, "Operation": "3"}
-    print(data)
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((ip, port))
     s.send(bytes(json.dumps(data), encoding='utf-8'))
 
     # From Gabriel's server_file_transfer_Gabriel_Yeager.py
-
-    print(s.recv(4096))
-
     while True:
         data_piece = s.recv(4096)
         if not data_piece:
@@ -210,6 +201,7 @@ def receive_file(file_name, ip, port):
 
 
 class MessageFrame(Frame):
+    # frame to handle messages
     def __init__(self, parent, width, height):
         Frame.__init__(self, parent)
         self.width = width
@@ -236,7 +228,7 @@ class MessageFrame(Frame):
         self.frame.bind("<Configure>", self.on_frame_configure)
 
         # populate sample data. Uncomment for testing
-        self.populate(width, height)
+        # self.populate(width, height)
 
     def add_received_message(self, data):
         self.move_scrollbar = True
@@ -308,6 +300,8 @@ class MessageFrame(Frame):
 
 
     def add_sent_file(self, data):
+        # very similar to add_sent_message
+        # additional download button
         self.move_scrollbar = True
 
         padding_height = 30
@@ -341,6 +335,7 @@ class MessageFrame(Frame):
         can.grid(row=self.frame.grid_size()[1], column=0, pady=4)
 
     def download_file(self, file_name):
+        # wrapper to start download thread
         _thread.start_new_thread(receive_file, (file_name, IP, PORT))
 
 
@@ -403,6 +398,7 @@ class MessageFrame(Frame):
 
 
 def round_rectangle(master, x1, y1, x2, y2, radius=25, **kwargs):
+    # found on stackoverflow to create rectangles with rounded corners
     points = [x1 + radius, y1,
               x1 + radius, y1,
               x2 - radius, y1,
